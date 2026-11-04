@@ -80,3 +80,20 @@ offset_bottom = 83.0
 theme_override_fonts/font = ExtResource("7_f7tlc")
 theme_override_font_sizes/font_size = 20
 text = "node_id: ∅"
+
+[node name="CounterLabel" type="Label" parent="." unique_id=517668092]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 88.0
+offset_right = 56.0
+offset_bottom = 111.0
+
+[node name="ResetButton" type="Button" parent="." unique_id=1469512638]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 136.0
+offset_right = 120.0
+offset_bottom = 176.0
+text = "reset"

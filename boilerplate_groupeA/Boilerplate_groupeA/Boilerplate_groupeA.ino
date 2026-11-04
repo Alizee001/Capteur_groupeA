@@ -28,7 +28,6 @@ constexpr mps::Subject kSubCmdResetCounter = mps::makeSubject("cmd_" DEVICE_NAME
 // par exemple : `constexpr mps::Subject kSubStatusSomeData = mps::makeSubject("status_" DEVICE_NAME "_some_data");`
 // ou : `constexpr mps::Subject kSubCmdSomeOrder = mps::makeSubject("cmd_" DEVICE_NAME "_some_order");`
 
-// ---- Callbacks ----
 // Appelé lors de l'ouverture de la session (callback)
 static void onSessionOpened() {
   Serial.println("Session opened!");
@@ -37,16 +36,16 @@ static void onSessionOpened() {
   // republiez ici l’état initial, la passerelle ne garde rien
 }
 
+// ---- Callbacks ----
+static void onCmdResetCounter(const mps::FrameView& message, void*) {
+  if (message.payloadLength != 0) return; // ce format n'a pas de payload
+    counter.value = 0;
+  MPS.publishValue(kSubStatusCounter, counter); // l'IHM voit le résultat réel
+}
+
 // Appelé en cas d'échec d'envoi (callback)
 static void onSendFailed(uint16_t sequenceNumber, uint32_t subjectId, mps::SendFailureReason, mps::AcknowledgementStatus) {
   Serial.printf("/!\\ envoi %u (subject 0x%08lX) perdu\n", sequenceNumber, (unsigned long)subjectId);
-}
-
-
-static void onCmdReset(const mps::FrameView& message, void*) {
-  if (message.payloadLength != 0) return; // ce format n'a pas de payload
-  counter.value = 0;
-  MPS.publishValue(kSubStatusCounter, counter); // l'IHM voit le résultat réel
 }
 
 // ... ajoutez vos callbacks ici, ex : 
@@ -90,6 +89,8 @@ void setup() {
     return;
   }
 
+  MPS.on(kSubCmdResetCounter, onCmdResetCounter);
+
   // démarrage du client MPS
   if(!MPS.begin(kGatewayMacAddress, DEVICE_NAME, kWifiChannel)) Serial.println("MPS: demarrage impossible");
 }
@@ -121,3 +122,4 @@ void loop() {
   //   MPS.publishValue(kSubStatusSomeData, payload);
   // }
 }
+
