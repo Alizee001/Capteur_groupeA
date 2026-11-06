@@ -1,12 +1,12 @@
 [gd_scene format=3 uid="uid://dw213e8bkrpyi"]
 
 [ext_resource type="StyleBox" uid="uid://t0n8yj0takmp" path="res://style/sbf_tile.tres" id="1_dtioc"]
-[ext_resource type="Script" uid="uid://csyx5uvdj68ft" path="res://tiles/boilerplate/tile.gd" id="2_d22l5"]
-[ext_resource type="FontFile" uid="uid://i0tspotkeu7w" path="res://tiles/boilerplate/SpaceMono-Bold.ttf" id="3_xr8ye"]
-[ext_resource type="Texture2D" uid="uid://c8lnhttcid17t" path="res://tiles/boilerplate/wifi.png" id="4_aeo2i"]
+[ext_resource type="Script" uid="uid://csyx5uvdj68ft" path="res://boilerplate/tile.gd" id="2_d22l5"]
+[ext_resource type="FontFile" uid="uid://i0tspotkeu7w" path="res://boilerplate/SpaceMono-Bold.ttf" id="3_xr8ye"]
+[ext_resource type="Texture2D" uid="uid://c8lnhttcid17t" path="res://boilerplate/wifi.png" id="4_aeo2i"]
 [ext_resource type="Script" uid="uid://cckwr06504sfp" path="res://core/state_icon.gd" id="5_83csu"]
-[ext_resource type="Texture2D" uid="uid://bqantpshqf1q8" path="res://tiles/boilerplate/heart(2).png" id="6_1g4xh"]
-[ext_resource type="FontFile" uid="uid://5elwtggtk88j" path="res://tiles/boilerplate/SpaceMono-Regular.ttf" id="7_nanjq"]
+[ext_resource type="Texture2D" uid="uid://bqantpshqf1q8" path="res://boilerplate/heart(2).png" id="6_1g4xh"]
+[ext_resource type="FontFile" uid="uid://5elwtggtk88j" path="res://boilerplate/SpaceMono-Regular.ttf" id="7_nanjq"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lbf3d"]
 content_margin_bottom = 1.0

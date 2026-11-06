@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://5elwtggtk88j"
-path="res://.godot/imported/SpaceMono-Regular.ttf-e5624da57fa18c5bb1ae07ee7217f686.fontdata"
+uid="uid://i0tspotkeu7w"
+path="res://.godot/imported/SpaceMono-Bold.ttf-7c76ae960a68db8d21c7cd549ab00366.fontdata"
 
 [deps]
 
-source_file="res://tiles/boilerplate/SpaceMono-Regular.ttf"
-dest_files=["res://.godot/imported/SpaceMono-Regular.ttf-e5624da57fa18c5bb1ae07ee7217f686.fontdata"]
+source_file="res://boilerplate/SpaceMono-Bold.ttf"
+dest_files=["res://.godot/imported/SpaceMono-Bold.ttf-7c76ae960a68db8d21c7cd549ab00366.fontdata"]
 
 [params]
 
