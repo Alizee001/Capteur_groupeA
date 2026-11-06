@@ -7,6 +7,7 @@ const SUB_STATUS_COUNTER = "status_" + DEVICE_NAME + "_counter"
 const SUB_CMD_RESET = "cmd_" + DEVICE_NAME + "_reset_counter"
 const SUB_STATUS_ANALOG = "status_" + DEVICE_NAME + "_analog" 
 const SUB_STATUS_ENVIRONMENT = "status_" + DEVICE_NAME + "_environment" 
+
 ## Délai sans heartbeat au-delà duquel le capteur est considéré comme bloqué (3,5 périodes de 1 s).
 const HB_TIMEOUT_S := 3.5
 ## Durée d'allumage de l'icône de heartbeat à chaque réception.
@@ -37,7 +38,7 @@ func get_subscriptions() -> PackedStringArray:
 	subscriptions.append(SUB_HB)
 	subscriptions.append(SUB_STATUS_ANALOG) 
 	subscriptions.append(SUB_STATUS_ENVIRONMENT) 
-	subscriptions.append(SUB_STATUS_COUNTER) # AJOUT
+	subscriptions.append(SUB_STATUS_COUNTER) 
 	return subscriptions
 
 
@@ -60,12 +61,12 @@ func on_gateway_reachability_changed(is_gateway_reachable: bool) -> void:
 
 
 func on_message(subject_name: String, source_id: int, payload: PackedByteArray) -> void:
-	print(subject_name, " ", source_id, " ", payload) # AJOUT : déplacé ici
+	#print(subject_name, " ", source_id, " ", payload)
 	if subject_name == SUB_HB: _on_hb(source_id)
 	if source_id != _node_id: return # ne traitez que les messages dédiés à votre capteur
 	# Ajoutez vos messages à la suite
 	match subject_name:
-		SUB_STATUS_COUNTER: # AJOUT
+		SUB_STATUS_COUNTER: 
 			if payload.size() != 4: return # le contrat : 4 octets, sinon on ignore
 			%CounterLabel.text = "Compteur : %d" % payload.decode_u32(0)
 		SUB_STATUS_ANALOG:
@@ -109,14 +110,14 @@ func _ready() -> void:
 	%HumidityLabel.text = "Humidité : —"
 	_set_stale(true)
 
-func _show_analog(raw: int, suffix := "") -> void: # AJOUT
+func _show_analog(raw: int, suffix := "") -> void: 
 	%AnalogLabel.text = "Analogique : %d (≈ %.2f V)%s" % [raw, raw / ADC_MAX * ADC_VREF, suffix]
 
-func _show_environment(temp_centi: int, hum_centi: int, suffix := "") -> void: # AJOUT
+func _show_environment(temp_centi: int, hum_centi: int, suffix := "") -> void: 
 	%TemperatureLabel.text = "Température : %.1f °C%s" % [temp_centi / CENTI, suffix]
 	%HumidityLabel.text = "Humidité : %.0f %%%s" % [hum_centi / CENTI, suffix]
 
-func _set_stale(stale: bool) -> void: # AJOUT
+func _set_stale(stale: bool) -> void: 
 	var color := Color(1, 1, 1, 0.4) if stale else Color(1, 1, 1, 1)
 	%CounterLabel.modulate = color
 	%AnalogLabel.modulate = color
