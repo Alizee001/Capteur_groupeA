@@ -9,6 +9,10 @@ const SUB_CMD_SET_LED = "cmd_" + DEVICE_NAME + "_set_led"
 const HB_TIMEOUT_S := 3.5
 ## Durée d'allumage de l'icône de heartbeat à chaque réception.
 const HB_BLINK_S := 0.5
+## Définition de chaque couleur
+const LED_COLOR_WHITE :=[42, 42, 42] # Blanc faible (255 éblouiraut vite)
+const LED_COLOR_OFF := [0, 0, 0] 
+
 
 # ---- VARIABLES ----
 var _node_id: int = -1
@@ -30,6 +34,7 @@ func _ready() -> void:
 func get_subscriptions() -> PackedStringArray:
 	var subscriptions: PackedStringArray = []
 	subscriptions.append(SUB_HB)
+	subscriptions.append(SUB_STATUS_LED)
 	return subscriptions
 
 ## Source principale du node_id : la passerelle annonce le capteur par son nom dès son enregistrement,
@@ -54,6 +59,7 @@ func on_message(subject_name: String, source_id: int, _payload: PackedByteArray)
 	if subject_name == SUB_HB: _on_hb(source_id)
 	if source_id != _node_id: return # ne traitez que les messages dédiés à votre capteur
 	# Ajoutez vos messages à la suite
+	if subject_name == SUB_STATUS_LED: _on_status_led(_payload)
 
 
 func _process(delta: float) -> void:
@@ -80,3 +86,14 @@ func _on_hb(source_id: int):
 	if source_id != _node_id: return
 	_seconds_since_hb = 0.0
 	_connected = true
+
+
+func _on_status_led(payload: PackedByteArray) -> void:
+	if payload.size() != 3: return
+	var is_on:= payload[0] > 0 or payload[1] > 0 or payload[2] > 0
+	%LedButton.set_pressed_no_signal(is_on) # met a jour le signale sans redéclancher le toggled
+	
+	#_on_led_toogeled()
+	
+#func _on_led_change() -> void:
+	

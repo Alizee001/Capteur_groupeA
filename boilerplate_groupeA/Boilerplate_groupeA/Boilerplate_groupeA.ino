@@ -15,17 +15,28 @@ struct __attribute__((packed)) CounterPayload {
 static_assert(sizeof(CounterPayload) == 4, "CounterPayload = 4 octets");
 
 struct __attribute__((packed)) LedPayload {
-  unit8_t r;
-  unit8_t g;
-  unit8_t b;
-}
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+};
 static_assert(sizeof(LedPayload) == 3, "LedPayload = 3 octets");
 
 // ---- Variables globales ----
 // placez ici vos variables à partager entre plusieurs contextes (ex : setup, loop, callbacks)
 static CounterPayload counter = {0};
-static LedPayload led = {0, 0, 0}
+static LedPayload led = {0, 0, 0};
+
+// ---- Constantes ----
 constexpr uint8_t kLedPin = 2; // LED SK6812 sur GPIO 2 ("G2")
+constexpr uint8_t kLedOff[3] = {0, 0, 0};
+constexpr uint8_t kLedColors[6][3] = {
+  {42, 42, 42}, // blanc
+  {42, 0, 0}, // rouge
+  {0, 0, 42}, // bleu
+  {0, 42, 0}, // vert
+  {42, 42, 0}, // jaune
+  {42, 0, 42} // violet
+}
 
 // ---- Subjects ----
 constexpr mps::Subject kSubHb = mps::makeSubject("hb_" DEVICE_NAME);
@@ -58,9 +69,27 @@ static void onCmdResetCounter(const mps::FrameView& message, void*) {
   MPS.publishValue(kSubStatusCounter, counter); // l'IHM voit le résultat réel
 }
 static void onCmdSetLed(const mps::FrameView& message, void*) {
-  LedPayload payload;
-  if (!mps::readPayloadAs(message, &payload)) return; // regette si la taill ne correspond pas
-  led = payload;
+  if (message.payloadLength != 0) return; // ce format n'a pas de payload
+  if (!mps::readPayloadAs(message, &led)) return; // rejète si la taille ne correspond pas
+  // TO DO: mettre dans godot la gestion de couleur
+
+  // if (led_command.command == 0) {
+  //   if (led.r == 0 && led.g == 0 && led.b == 0){ // si led éteinte, on met à blanc
+  //     led.r = kLedColors[0][0];
+  //     led.g = kLedColors[0][1];
+  //     led.b = kLedColors[0][2];
+  //   } else { // sinon, on l'éteint
+  //     led.r = kLedOff[0];
+  //     led.g = kLedOff[1];
+  //     led.b = kLedOff[2];
+  //   }
+  // } else {
+  //   if (led.r == 0 && led.g == 0 && led.b == 0){ // si led éteinte, on ne peut pas changer la couleur
+  //     return;
+  //   } else { // si allumée, on cycle à travers les couleurs prédéfinies
+
+  //   }
+  // }
   applyLed();
   MPS.publishValue(kSubStatusLed, led); // l'IHM voit l'état reel
 }
