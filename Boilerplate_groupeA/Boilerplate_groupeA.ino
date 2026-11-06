@@ -1,5 +1,15 @@
 #include <MPS.h>
+#include <Adafruit_Sensor.h> 
+#include <DHT.h> 
 #include "config.h"
+
+// ---- Constantes ---- 
+constexpr uint8_t kAnalogPin = 4; 
+constexpr uint8_t kDhtPin = 0; 
+constexpr uint8_t kDhtType = DHT11; 
+constexpr uint32_t kAnalogPeriodMs = 1000; 
+constexpr uint32_t kEnvironmentPeriodMs = 2000; // (le DHT11 ne tolère pas plus d'une lecture par seconde)
+constexpr float kCentiPerUnit = 100.0f; // (on publie en centièmes pour rester en entiers)
 
 // ---- Structures de payload ----
 // placer ici vos structures de payloads, par exemple :
@@ -14,10 +24,25 @@ struct __attribute__((packed)) CounterPayload {
 };
 static_assert(sizeof(CounterPayload) == 4, "CounterPayload = 4 octets");
 
+struct __attribute__((packed)) AnalogPayload { 
+  uint16_t adcRawCounts;
+};
+static_assert(sizeof(AnalogPayload) == 2, "AnalogPayload = 2 octets");
+
+struct __attribute__((packed)) EnvironmentPayload { 
+  int16_t temperatureCentiDegrees;  // 2350 = 23,50 °C
+  uint16_t humidityCentiPercent;    // 4500 = 45,00 %
+};
+static_assert(sizeof(EnvironmentPayload) == 4, "EnvironmentPayload = 4 octets");
+
 
 // ---- Variables globales ----
 // placez ici vos variables à partager entre plusieurs contextes (ex : setup, loop, callbacks)
 static CounterPayload counter = {0};
+static AnalogPayload analogReading = {0}; 
+static EnvironmentPayload environment = {0, 0}; 
+static bool isEnvironmentValid = false;// (vrai dès qu'une lecture DHT11 a réussi)
+static DHT dht(kDhtPin, kDhtType); 
 
 
 // ---- Subjects ----
@@ -27,11 +52,15 @@ constexpr mps::Subject kSubCmdResetCounter = mps::makeSubject("cmd_" DEVICE_NAME
 // ... ajoutez vos sujets ici sur le même schéma que le heartbeat, mais en précisant la donnée envoyée,
 // par exemple : `constexpr mps::Subject kSubStatusSomeData = mps::makeSubject("status_" DEVICE_NAME "_some_data");`
 // ou : `constexpr mps::Subject kSubCmdSomeOrder = mps::makeSubject("cmd_" DEVICE_NAME "_some_order");`
+constexpr mps::Subject kSubStatusAnalog = mps::makeSubject("status_" DEVICE_NAME "_analog"); 
+constexpr mps::Subject kSubStatusEnvironment = mps::makeSubject("status_" DEVICE_NAME "_environment"); 
 
 // Appelé lors de l'ouverture de la session (callback)
 static void onSessionOpened() {
   Serial.println("Session opened!");
   MPS.publishValue(kSubStatusCounter, counter);
+  MPS.publishValue(kSubStatusAnalog, analogReading); 
+  if(isEnvironmentValid) MPS.publishValue(kSubStatusEnvironment, environment); 
 
   // republiez ici l’état initial, la passerelle ne garde rien
 }
@@ -56,6 +85,14 @@ static void onSendFailed(uint16_t sequenceNumber, uint32_t subjectId, mps::SendF
 // }
 
 // ---- Fonctions appelées par setup/loop ----
+// vrai si la période est écoulée (et réarme le chrono), sans delay()
+static bool hasPeriodElapsed(uint32_t& lastTimeMs, uint32_t periodMs) { 
+  const uint32_t now = millis();
+  if(now - lastTimeMs < periodMs) return false;
+  lastTimeMs = now;
+  return true;
+}
+
 // envoi de heartbeats réguliers sans bloquer (comparaison au temps écoulé sans delay())
 void publishHeartbeat(){
   static uint32_t lastHeartbeatTimeMs = 0;
@@ -68,11 +105,41 @@ void publishHeartbeat(){
   }
 }
 
+// Lecture analogique (pin 4) : valeur brute 0..4095 sur ESP32-C3 
+static void publishAnalog() {
+  static uint32_t lastTimeMs = 0;
+  if(!hasPeriodElapsed(lastTimeMs, kAnalogPeriodMs)) return;
+  analogReading.adcRawCounts = static_cast<uint16_t>(analogRead(kAnalogPin));
+  Serial.printf("Analogique : %u\n", analogReading.adcRawCounts); 
+  MPS.publishValue(kSubStatusAnalog, analogReading);
+}
+
+// Lecture DHT11 (pin 0) : température et humidité publiées en centièmes 
+static void publishEnvironment() {
+  static uint32_t lastTimeMs = 0;
+  if(!hasPeriodElapsed(lastTimeMs, kEnvironmentPeriodMs)) return;
+
+  const float temperatureCelsius = dht.readTemperature();
+  const float humidityPercent = dht.readHumidity();
+  if(isnan(temperatureCelsius) || isnan(humidityPercent)) {
+    Serial.println("DHT11: lecture impossible");
+    return;
+  }
+
+  environment.temperatureCentiDegrees = static_cast<int16_t>(lroundf(temperatureCelsius * kCentiPerUnit));
+  environment.humidityCentiPercent = static_cast<uint16_t>(lroundf(humidityPercent * kCentiPerUnit));
+  isEnvironmentValid = true;
+  Serial.printf("DHT11 : %.1f C, %.0f %%\n", temperatureCelsius, humidityPercent); // AJOUT
+  MPS.publishValue(kSubStatusEnvironment, environment);
+}
+
 // ---- Fonctions Arduino ----
 // Exécutée une fois au démarrage
 void setup() {
   Serial.begin(115200); // Démarrage de la communication série à 115200 bauds (sortie des Serial.print.. par exemple)
   MPS.setLogOutput(&Serial); // Définition de la sortie des messages de log de la lib MPS
+
+  dht.begin(); 
 
   // enregistrement des callbacks
   MPS.setRegisteredCallback(onSessionOpened);
@@ -110,6 +177,8 @@ void loop() {
 
   // Appel non bloquant de l'envoi d'HB (polling)
   publishHeartbeat();
+  publishAnalog();
+  publishEnvironment(); 
   
   // ... ajoutez vos envois de données et autres comportements **non bloquants**
   // par exemple :
@@ -122,4 +191,3 @@ void loop() {
   //   MPS.publishValue(kSubStatusSomeData, payload);
   // }
 }
-
