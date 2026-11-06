@@ -1,7 +1,7 @@
 extends Tile
 
 # ---- CONSTANTES ----
-const DEVICE_NAME = "sensor_boiler"
+const DEVICE_NAME = "sensor_a"
 const SUB_HB = "hb_" + DEVICE_NAME
 ## Délai sans heartbeat au-delà duquel le capteur est considéré comme bloqué (3,5 périodes de 1 s).
 const HB_TIMEOUT_S := 3.5

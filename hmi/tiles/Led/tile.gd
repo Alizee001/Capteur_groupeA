@@ -1,7 +1,7 @@
 extends Tile
 
 # ---- CONSTANTES ----
-const DEVICE_NAME = "sensor_boiler"
+const DEVICE_NAME = "sensor_a"
 const SUB_HB = "hb_" + DEVICE_NAME
 const SUB_STATUS_LED = "status_" + DEVICE_NAME + "_led"
 const SUB_CMD_SET_LED = "cmd_" + DEVICE_NAME + "_set_led"
@@ -10,12 +10,22 @@ const HB_TIMEOUT_S := 3.5
 ## Durée d'allumage de l'icône de heartbeat à chaque réception.
 const HB_BLINK_S := 0.5
 ## Définition de chaque couleur
-const LED_COLOR_WHITE :=[42, 42, 42] # Blanc faible (255 éblouiraut vite)
-const LED_COLOR_OFF := [0, 0, 0] 
+
+const LED_COLORS = {
+	"Off": [0, 0, 0],
+	"White": [255, 255, 255],
+	"Red": [255, 0, 0],
+	"Blue": [0, 0, 255],
+	"Green": [0, 255, 0],
+	"Yellow": [255, 255, 0],
+	"Orange": [255, 57, 0],
+	"Violet": [255, 0, 255]
+}
 
 
 # ---- VARIABLES ----
 var _node_id: int = -1
+var _is_on: bool = false
 var _seconds_since_hb := INF
 # Variable "_connected" avec setter personnalisé pour appeler la MAJ de l'UI au changement d'état
 var _connected: bool = false:
@@ -29,7 +39,8 @@ var _connected: bool = false:
 
 func _ready() -> void:
 	super()
-	##%SetLedButton.pressed.connect(func(): publish(SUB_CMD_SET_LED, ))
+	%LedButton.pressed.connect(_on_switch_led)
+	%SetColorButton.pressed.connect(_on_change_color_clicked)
 
 func get_subscriptions() -> PackedStringArray:
 	var subscriptions: PackedStringArray = []
@@ -88,12 +99,57 @@ func _on_hb(source_id: int):
 	_connected = true
 
 
-func _on_status_led(payload: PackedByteArray) -> void:
+func _on_status_led(payload: PackedByteArray) -> void: # quand le statut de la led est changé (démarrage / chang. couleur)
 	if payload.size() != 3: return
-	var is_on:= payload[0] > 0 or payload[1] > 0 or payload[2] > 0
-	%LedButton.set_pressed_no_signal(is_on) # met a jour le signale sans redéclancher le toggled
+	_is_on = payload[0] > 0 or payload[1] > 0 or payload[2] > 0
+	%LedLabel.set("theme_override_colors/font_color", Color(payload[0], payload[1], payload[2])) # l'ui affiche la couleur courante
+	if payload[0] == LED_COLORS["Off"][0] && payload[1] == LED_COLORS["Off"][1] && payload[2] == LED_COLORS["Off"][2]: # on met à jour le texte du label
+		%LedLabel.text = "Off";
+	elif payload[0] == LED_COLORS["White"][0] && payload[1] == LED_COLORS["White"][1] && payload[2] == LED_COLORS["White"][2]:
+		%LedLabel.text = "White";
+	elif payload[0] == LED_COLORS["Red"][0] && payload[1] == LED_COLORS["Red"][1] && payload[2] == LED_COLORS["Red"][2]:
+		%LedLabel.text = "Red";
+	elif payload[0] == LED_COLORS["Blue"][0] && payload[1] == LED_COLORS["Blue"][1] && payload[2] == LED_COLORS["Blue"][2]:
+		%LedLabel.text = "Blue";
+	elif payload[0] == LED_COLORS["Green"][0] && payload[1] == LED_COLORS["Green"][1] && payload[2] == LED_COLORS["Green"][2]:
+		%LedLabel.text = "Green";
+	elif payload[0] == LED_COLORS["Yellow"][0] && payload[1] == LED_COLORS["Yellow"][1] && payload[2] == LED_COLORS["Yellow"][2]:
+		%LedLabel.text = "Yellow";
+	elif payload[0] == LED_COLORS["Orange"][0] && payload[1] == LED_COLORS["Orange"][1] && payload[2] == LED_COLORS["Orange"][2]:
+		%LedLabel.text = "Orange";
+		%LedLabel.set("theme_override_colors/font_color", Color("Orange")) # le orange reconstitué via le payload semble jaune dans le texte
+	elif payload[0] == LED_COLORS["Violet"][0] && payload[1] == LED_COLORS["Violet"][1] && payload[2] == LED_COLORS["Violet"][2]:
+		%LedLabel.text = "Violet";
 	
-	#_on_led_toogeled()
+func _on_change_color_clicked():
+	if _is_on:
+		var random = randi() % 7 # random de 0 à 6 inclus
+		var color = ""
+		match random:
+			0:
+				color = "White";
+			1:
+				color = "Red";
+			2:
+				color = "Blue";
+			3:
+				color = "Green";
+			4:
+				color = "Yellow";
+			5:
+				color = "Orange";
+			6:
+				color = "Violet";
+		var new_color = PackedByteArray(LED_COLORS[color]) # on envoie une couleur aléatoire au capteur
+		publish(SUB_CMD_SET_LED, new_color)
+	else:
+		return
 	
-#func _on_led_change() -> void:
-	
+func _on_switch_led():
+	print("Switch led")
+	if _is_on == true: # si led allumé, on l'éteint, sinon on l'allume
+		print("switch true")
+		publish(SUB_CMD_SET_LED, PackedByteArray(LED_COLORS["Off"]))
+	else:
+		print("switch false")
+		publish(SUB_CMD_SET_LED, PackedByteArray(LED_COLORS["White"]))

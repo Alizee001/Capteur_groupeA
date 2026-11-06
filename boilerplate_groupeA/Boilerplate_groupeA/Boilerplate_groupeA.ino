@@ -28,15 +28,6 @@ static LedPayload led = {0, 0, 0};
 
 // ---- Constantes ----
 constexpr uint8_t kLedPin = 2; // LED SK6812 sur GPIO 2 ("G2")
-constexpr uint8_t kLedOff[3] = {0, 0, 0};
-constexpr uint8_t kLedColors[6][3] = {
-  {42, 42, 42}, // blanc
-  {42, 0, 0}, // rouge
-  {0, 0, 42}, // bleu
-  {0, 42, 0}, // vert
-  {42, 42, 0}, // jaune
-  {42, 0, 42} // violet
-}
 
 // ---- Subjects ----
 constexpr mps::Subject kSubHb = mps::makeSubject("hb_" DEVICE_NAME);
@@ -54,7 +45,7 @@ static void onSessionOpened() {
   MPS.publishValue(kSubStatusCounter, counter);
 
   // republiez ici l’état initial, la passerelle ne garde rien
-  MPS.publishValue(kSuStatusLed, led)
+  MPS.publishValue(kSubStatusLed, led);
 }
 
 // ---- Fonction utilitaires ----
@@ -69,27 +60,11 @@ static void onCmdResetCounter(const mps::FrameView& message, void*) {
   MPS.publishValue(kSubStatusCounter, counter); // l'IHM voit le résultat réel
 }
 static void onCmdSetLed(const mps::FrameView& message, void*) {
-  if (message.payloadLength != 0) return; // ce format n'a pas de payload
-  if (!mps::readPayloadAs(message, &led)) return; // rejète si la taille ne correspond pas
-  // TO DO: mettre dans godot la gestion de couleur
-
-  // if (led_command.command == 0) {
-  //   if (led.r == 0 && led.g == 0 && led.b == 0){ // si led éteinte, on met à blanc
-  //     led.r = kLedColors[0][0];
-  //     led.g = kLedColors[0][1];
-  //     led.b = kLedColors[0][2];
-  //   } else { // sinon, on l'éteint
-  //     led.r = kLedOff[0];
-  //     led.g = kLedOff[1];
-  //     led.b = kLedOff[2];
-  //   }
-  // } else {
-  //   if (led.r == 0 && led.g == 0 && led.b == 0){ // si led éteinte, on ne peut pas changer la couleur
-  //     return;
-  //   } else { // si allumée, on cycle à travers les couleurs prédéfinies
-
-  //   }
-  // }
+  // if (message.payloadLength != 0) return; // ce format n'a pas de payload
+  // if (!mps::readPayloadAs(message, &led)) return; // rejète si la taille ne correspond pas
+  LedPayload payload;
+  if (!mps::readPayloadAs(message, &payload)) return;
+  led = payload;
   applyLed();
   MPS.publishValue(kSubStatusLed, led); // l'IHM voit l'état reel
 }
@@ -99,12 +74,6 @@ static void onSendFailed(uint16_t sequenceNumber, uint32_t subjectId, mps::SendF
   Serial.printf("/!\\ envoi %u (subject 0x%08lX) perdu\n", sequenceNumber, (unsigned long)subjectId);
 }
 
-// ... ajoutez vos callbacks ici, ex : 
-// static void onCmdSomeOrder(const mps::FrameView& message, void*) {
-//   SomePayload payload;
-//   if(!mps::readPayloadAs(message, &payload)) return;
-//   Serial.printf("Donnée : %02X\n", payload.someVariableA);
-// }
 
 // ---- Fonctions appelées par setup/loop ----
 // envoi de heartbeats réguliers sans bloquer (comparaison au temps écoulé sans delay())
