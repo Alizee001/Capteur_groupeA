@@ -41,6 +41,10 @@ func _ready() -> void:
 	super()
 	%LedButton.pressed.connect(_on_switch_led)
 	%SetColorButton.pressed.connect(_on_change_color_clicked)
+	%LedButton.disabled = true;
+	%SetColorButton.disabled = true;
+	%LedLabel.set("theme_override_colors/font_color", Color(LED_COLORS["Off"][0], LED_COLORS["Off"][1], LED_COLORS["Off"][2]))
+	%LedLabel.text = "Off / Waiting for connection"
 
 func get_subscriptions() -> PackedStringArray:
 	var subscriptions: PackedStringArray = []
@@ -83,11 +87,17 @@ func _process(delta: float) -> void:
 func _on_sensor_connected():
 	%IDLabel.text = "node_id: %d" % _node_id
 	%ConnectedIcon.state = true
+	%LedButton.disabled = false;
+	%SetColorButton.disabled = false;
 
 
 func _on_sensor_disconnected():
 	%IDLabel.text = "node_id: ∅"
 	%ConnectedIcon.state = false
+	%LedLabel.set("theme_override_colors/font_color", Color(LED_COLORS["Off"][0], LED_COLORS["Off"][1], LED_COLORS["Off"][2]))
+	%LedLabel.text = "Off / Disconnected";
+	%LedButton.disabled = true;
+	%SetColorButton.disabled = true;
 
 ## @brief Traite un heartbeat : (re)connecte le capteur et relance la temporisation.
 ## @param source_id  Identifiant de l'appareil émetteur.
@@ -146,10 +156,7 @@ func _on_change_color_clicked():
 		return
 	
 func _on_switch_led():
-	print("Switch led")
 	if _is_on == true: # si led allumé, on l'éteint, sinon on l'allume
-		print("switch true")
 		publish(SUB_CMD_SET_LED, PackedByteArray(LED_COLORS["Off"]))
 	else:
-		print("switch false")
 		publish(SUB_CMD_SET_LED, PackedByteArray(LED_COLORS["White"]))
