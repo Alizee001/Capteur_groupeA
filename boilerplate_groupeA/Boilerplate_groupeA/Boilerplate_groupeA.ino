@@ -14,11 +14,18 @@ struct __attribute__((packed)) CounterPayload {
 };
 static_assert(sizeof(CounterPayload) == 4, "CounterPayload = 4 octets");
 
+struct __attribute__((packed)) LedPayload {
+  unit8_t r;
+  unit8_t g;
+  unit8_t b;
+}
+static_assert(sizeof(LedPayload) == 3, "LedPayload = 3 octets");
 
 // ---- Variables globales ----
 // placez ici vos variables à partager entre plusieurs contextes (ex : setup, loop, callbacks)
 static CounterPayload counter = {0};
-
+static LedPayload led = {0, 0, 0}
+constexpr uint8_t kLedPin = 2; // LED SK6812 sur GPIO 2 ("G2")
 
 // ---- Subjects ----
 constexpr mps::Subject kSubHb = mps::makeSubject("hb_" DEVICE_NAME);
@@ -27,6 +34,8 @@ constexpr mps::Subject kSubCmdResetCounter = mps::makeSubject("cmd_" DEVICE_NAME
 // ... ajoutez vos sujets ici sur le même schéma que le heartbeat, mais en précisant la donnée envoyée,
 // par exemple : `constexpr mps::Subject kSubStatusSomeData = mps::makeSubject("status_" DEVICE_NAME "_some_data");`
 // ou : `constexpr mps::Subject kSubCmdSomeOrder = mps::makeSubject("cmd_" DEVICE_NAME "_some_order");`
+constexpr mps::Subject kSubStatusLed = mps::makeSubject("status_" DEVICE_NAME "_led");
+constexpr mps::Subject kSubCmdSetLed = mps::makeSubject("cmd_" DEVICE_NAME "_set_led");
 
 // Appelé lors de l'ouverture de la session (callback)
 static void onSessionOpened() {
@@ -34,6 +43,12 @@ static void onSessionOpened() {
   MPS.publishValue(kSubStatusCounter, counter);
 
   // republiez ici l’état initial, la passerelle ne garde rien
+  MPS.publishValue(kSuStatusLed, led)
+}
+
+// ---- Fonction utilitaires ----
+static void applyLed() {
+  rgbLedWrite(kLedPin, led.r, led.g, led.b);
 }
 
 // ---- Callbacks ----
@@ -41,6 +56,13 @@ static void onCmdResetCounter(const mps::FrameView& message, void*) {
   if (message.payloadLength != 0) return; // ce format n'a pas de payload
     counter.value = 0;
   MPS.publishValue(kSubStatusCounter, counter); // l'IHM voit le résultat réel
+}
+static void onCmdSetLed(const mps::FrameView& message, void*) {
+  LedPayload payload;
+  if (!mps::readPayloadAs(message, &payload)) return; // regette si la taill ne correspond pas
+  led = payload;
+  applyLed();
+  MPS.publishValue(kSubStatusLed, led); // l'IHM voit l'état reel
 }
 
 // Appelé en cas d'échec d'envoi (callback)
@@ -90,6 +112,8 @@ void setup() {
   }
 
   MPS.on(kSubCmdResetCounter, onCmdResetCounter);
+  MPS.on(kSubCmdSetLed, onCmdSetLed);
+  applyLed(); // état initial : éteinte
 
   // démarrage du client MPS
   if(!MPS.begin(kGatewayMacAddress, DEVICE_NAME, kWifiChannel)) Serial.println("MPS: demarrage impossible");
