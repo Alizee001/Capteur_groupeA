@@ -9,8 +9,8 @@ const SUB_CMD_SET_LED = "cmd_" + DEVICE_NAME + "_set_led"
 const HB_TIMEOUT_S := 3.5
 ## Durée d'allumage de l'icône de heartbeat à chaque réception.
 const HB_BLINK_S := 0.5
-## Définition de chaque couleur
 
+## Définition de chaque couleur
 const LED_COLORS = {
 	"Off": [0, 0, 0],
 	"White": [255, 255, 255],
@@ -73,7 +73,6 @@ func on_gateway_reachability_changed(is_gateway_reachable: bool) -> void:
 func on_message(subject_name: String, source_id: int, _payload: PackedByteArray) -> void:
 	if subject_name == SUB_HB: _on_hb(source_id)
 	if source_id != _node_id: return # ne traitez que les messages dédiés à votre capteur
-	# Ajoutez vos messages à la suite
 	if subject_name == SUB_STATUS_LED: _on_status_led(_payload)
 
 
@@ -108,7 +107,7 @@ func _on_hb(source_id: int):
 	_seconds_since_hb = 0.0
 	_connected = true
 
-
+## Fonction pour changer l'affichage en fonction du statut de la led
 func _on_status_led(payload: PackedByteArray) -> void: # quand le statut de la led est changé (démarrage / chang. couleur)
 	if payload.size() != 3: return
 	_is_on = payload[0] > 0 or payload[1] > 0 or payload[2] > 0
@@ -131,6 +130,7 @@ func _on_status_led(payload: PackedByteArray) -> void: # quand le statut de la l
 	elif payload[0] == LED_COLORS["Violet"][0] && payload[1] == LED_COLORS["Violet"][1] && payload[2] == LED_COLORS["Violet"][2]:
 		%LedLabel.text = "Violet";
 	
+## Fonction pour changer la couleur de la led de façon random
 func _on_change_color_clicked():
 	if _is_on:
 		var random = randi() % 7 # random de 0 à 6 inclus
@@ -154,7 +154,8 @@ func _on_change_color_clicked():
 		publish(SUB_CMD_SET_LED, new_color)
 	else:
 		return
-	
+
+## Fonction pour allumer ou éteindre la led	
 func _on_switch_led():
 	if _is_on == true: # si led allumé, on l'éteint, sinon on l'allume
 		publish(SUB_CMD_SET_LED, PackedByteArray(LED_COLORS["Off"]))
