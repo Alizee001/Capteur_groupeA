@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bqantpshqf1q8"
-path="res://.godot/imported/heart(2).png-2c70e79db18b8bc652c009a1c7c8a059.ctex"
+uid="uid://byaahhfloed8u"
+path="res://.godot/imported/wifi.png-267184a6a03478d5e3e78634c425a50b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://tiles/boilerplate/heart(2).png"
-dest_files=["res://.godot/imported/heart(2).png-2c70e79db18b8bc652c009a1c7c8a059.ctex"]
+source_file="res://tiles/capteur/wifi.png"
+dest_files=["res://.godot/imported/wifi.png-267184a6a03478d5e3e78634c425a50b.ctex"]
 
 [params]
 

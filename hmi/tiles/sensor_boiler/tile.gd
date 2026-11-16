@@ -3,12 +3,14 @@ extends Tile
 # ---- CONSTANTES ----
 const DEVICE_NAME = "sensor_a"
 const SUB_HB = "hb_" + DEVICE_NAME
+const SUB_STATUS_COUNTER = "status_" + DEVICE_NAME + "_counter"
+const SUB_CMD_RESET = "cmd_" + DEVICE_NAME + "_reset_counter"
 ## Délai sans heartbeat au-delà duquel le capteur est considéré comme bloqué (3,5 périodes de 1 s).
 const HB_TIMEOUT_S := 3.5
 ## Durée d'allumage de l'icône de heartbeat à chaque réception.
 const HB_BLINK_S := 0.5
-const SUB_STATUS_COUNTER = "status_" + DEVICE_NAME + "_counter"
-const SUB_CMD_RESET = "cmd_" + DEVICE_NAME + "_reset_counter"
+## Taille en octets du payload du compteur (un uint32).
+const COUNTER_PAYLOAD_SIZE := 4
 
 
 # ---- VARIABLES ----
@@ -27,7 +29,8 @@ var _connected: bool = false:
 
 func _ready() -> void:
 	super() # obligatoire : c'est lui qui abonne la tuile
-	%ResetButton.pressed.connect(func(): publish(SUB_CMD_RESET, PackedByteArray()))
+	%ResetButton.pressed.connect(func(): publish(SUB_CMD_RESET, PackedByteArray(), true))
+
 
 func get_subscriptions() -> PackedStringArray:
 	var subscriptions: PackedStringArray = []
@@ -53,12 +56,12 @@ func on_gateway_reachability_changed(is_gateway_reachable: bool) -> void:
 
 
 func on_message(subject_name: String, source_id: int, payload: PackedByteArray) -> void:
-	if subject_name == SUB_HB: 
+	if subject_name == SUB_HB:
 		_on_hb(source_id)
-	if source_id != _node_id: 
+	if source_id != _node_id:
 		return
 	if subject_name == SUB_STATUS_COUNTER:
-		if payload.size() != 4: 
+		if payload.size() != COUNTER_PAYLOAD_SIZE:
 			return # le contrat : 4 octets, sinon on ignore
 		%CounterLabel.text = "Compteur : %d" % payload.decode_u32(0)
 
@@ -70,25 +73,23 @@ func _process(delta: float) -> void:
 		_connected = false  # plus de heartbeat : code du capteur bloqué ou capteur hors de portée
 
 
-func _on_sensor_connected():
+func _on_sensor_connected() -> void:
 	%IDLabel.text = "node_id: %d" % _node_id
 	%ConnectedIcon.state = true
 
 
-func _on_sensor_disconnected():
+func _on_sensor_disconnected() -> void:
 	%IDLabel.text = "node_id: ∅"
 	%ConnectedIcon.state = false
 
 
 ## @brief Traite un heartbeat : (re)connecte le capteur et relance la temporisation.
 ## @param source_id  Identifiant de l'appareil émetteur.
-func _on_hb(source_id: int):
+func _on_hb(source_id: int) -> void:
 	# Secours si la tuile n'a pas vu on_node_online (IHM lancée après le capteur, par exemple)
-	if _node_id == -1: 
+	if _node_id == -1:
 		_node_id = source_id
-	if source_id != _node_id: 
+	if source_id != _node_id:
 		return
 	_seconds_since_hb = 0.0
 	_connected = true
-	
-	
