@@ -1,14 +1,6 @@
 #include <MPS.h>
 #include "config.h"
 
-// ---- Structures de payload ----
-// placer ici vos structures de payloads, par exemple :
-// struct __attribute__((packed)) SomePayload { // __attribute__((packed)) permet de contrôler la disposition des octets de celle-ci
-//   uint8_t someVariableA;
-//   int16_t someVariableB;
-// };
-// static_assert(sizeof(SomePayload) == 3, "SomePayload = 3 octets"); // Filet de sécurité à la compilation
-
 struct __attribute__((packed)) CounterPayload {
   uint32_t value;
 };
@@ -22,7 +14,6 @@ struct __attribute__((packed)) LedPayload {
 static_assert(sizeof(LedPayload) == 3, "LedPayload = 3 octets");
 
 // ---- Variables globales ----
-// placez ici vos variables à partager entre plusieurs contextes (ex : setup, loop, callbacks)
 static CounterPayload counter = {0};
 static LedPayload led = {0, 0, 0};
 
@@ -33,9 +24,6 @@ constexpr uint8_t kLedPin = 2; // LED SK6812 sur GPIO 2 ("G2")
 constexpr mps::Subject kSubHb = mps::makeSubject("hb_" DEVICE_NAME);
 constexpr mps::Subject kSubStatusCounter = mps::makeSubject("status_" DEVICE_NAME "_counter");
 constexpr mps::Subject kSubCmdResetCounter = mps::makeSubject("cmd_" DEVICE_NAME "_reset_counter");
-// ... ajoutez vos sujets ici sur le même schéma que le heartbeat, mais en précisant la donnée envoyée,
-// par exemple : `constexpr mps::Subject kSubStatusSomeData = mps::makeSubject("status_" DEVICE_NAME "_some_data");`
-// ou : `constexpr mps::Subject kSubCmdSomeOrder = mps::makeSubject("cmd_" DEVICE_NAME "_some_order");`
 constexpr mps::Subject kSubStatusLed = mps::makeSubject("status_" DEVICE_NAME "_led");
 constexpr mps::Subject kSubCmdSetLed = mps::makeSubject("cmd_" DEVICE_NAME "_set_led");
 
@@ -44,7 +32,6 @@ static void onSessionOpened() {
   Serial.println("Session opened!");
   MPS.publishValue(kSubStatusCounter, counter);
 
-  // republiez ici l’état initial, la passerelle ne garde rien
   MPS.publishValue(kSubStatusLed, led);
 }
 
@@ -60,8 +47,6 @@ static void onCmdResetCounter(const mps::FrameView& message, void*) {
   MPS.publishValue(kSubStatusCounter, counter); // l'IHM voit le résultat réel
 }
 static void onCmdSetLed(const mps::FrameView& message, void*) {
-  // if (message.payloadLength != 0) return; // ce format n'a pas de payload
-  // if (!mps::readPayloadAs(message, &led)) return; // rejète si la taille ne correspond pas
   LedPayload payload;
   if (!mps::readPayloadAs(message, &payload)) return;
   led = payload;
@@ -97,10 +82,6 @@ void setup() {
   // enregistrement des callbacks
   MPS.setRegisteredCallback(onSessionOpened);
   MPS.setSendFailedCallback(onSendFailed);
-  
-  // ... ajoutez vos callbacks à l'aide de MPS.on(const mps::Subject& subject, mps::MessageHandler handler, void* userContext = nullptr)
-  // par exemple :
-  // MPS.on(kSubCmdSomeOrder, onCmdSomeOrder);
 
   // constante d'adresse vide pour vérifier que l'adresse a été définie dans config.h
   static const uint8_t kUnsetMacAddress[6] = {0, 0, 0, 0, 0, 0};
@@ -132,16 +113,5 @@ void loop() {
 
   // Appel non bloquant de l'envoi d'HB (polling)
   publishHeartbeat();
-  
-  // ... ajoutez vos envois de données et autres comportements **non bloquants**
-  // par exemple :
-  // static uint32_t lastDataStatusTimeMs = 0;
-  // if(millis() - lastDataStatusTimeMs >= 2000){
-  //   lastDataStatusTimeMs = millis();
-  //   SomePayload payload = {0, 0};
-  //   payload.someVariableA = digitalRead(3);
-  //   payload.someVariableB = analogRead(5);
-  //   MPS.publishValue(kSubStatusSomeData, payload);
-  // }
 }
 
