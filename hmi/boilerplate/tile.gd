@@ -1,7 +1,7 @@
 extends Tile
 
 # ---- CONSTANTES ----
-const DEVICE_NAME = "sensor_boiler"
+const DEVICE_NAME = "sensor_a"
 const SUB_HB = "hb_" + DEVICE_NAME
 ## Délai sans heartbeat au-delà duquel le capteur est considéré comme bloqué (3,5 périodes de 1 s).
 const HB_TIMEOUT_S := 3.5
@@ -49,8 +49,6 @@ func on_gateway_reachability_changed(is_gateway_reachable: bool) -> void:
 func on_message(subject_name: String, source_id: int, _payload: PackedByteArray) -> void:
 	if subject_name == SUB_HB: _on_hb(source_id)
 	if source_id != _node_id: return # ne traitez que les messages dédiés à votre capteur
-	# Ajoutez vos messages à la suite
-
 
 func _process(delta: float) -> void:
 	_seconds_since_hb += delta
