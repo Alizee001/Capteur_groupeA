@@ -1,13 +1,21 @@
-# Création d’un capteur connecté — Livrable 1
+# Création d’un capteur connecté — Livrable 1 & 2
 
 **Groupe : A**  
 **Appareil :** `sensor_a`  
+**Livrables :**
+- `livrable-1` : version correspondant au Livrable 1 (mise en route, heartbeat, compteur et reset)
+- - `livrable-2` : version finale correspondant au Livrable 2 (mesure capteur, contrôle LED RGB, tuile Godot complète et documentation du contrat)
 
 ## 1. Présentation du projet
 
-Ce projet correspond à la première étape de la création d'un capteur connecté. Une carte ESP32-C3 communique avec la passerelle du TP grâce à la bibliothèque **MPS**. Une interface réalisée avec **Godot** permet de suivre l'état de connexion du capteur, d'afficher un compteur et de lui envoyer une commande de remise à zéro.
+Ce projet met en œuvre un capteur connecté basé sur une carte **ESP32-C3** communiquant via la bibliothèque **MPS** avec la passerelle du TP et une interface graphique **Godot**.
 
-## 2. Fonctionnalités du livrable 1
+- **Livrable 1 (`livrable-1`) :** mise en route de la liaison capteur <-> passerelle <-> IHM, heartbeat, compteur d'exemple et remise à zéro (`reset`).
+- **Livrable 2 (`livrable-2`) :** lecture d'une donnée de capteur (broche analogique/numérique et/ou DHT11 en bonus), pilotage de l'état et de la couleur de la LED RGB intégrée depuis l'IHM, gestion complète de l'état/déconnexion côté Godot, et respect strict des conventions et contrats de messages.
+
+## 2. Fonctionnalités
+
+### Livrable 1 (tag `livrable-1`)
 
 - Enregistrement du capteur `sensor_a` auprès de la passerelle.
 - Affichage de son identifiant (`node_id`) et de son état de connexion.
@@ -16,6 +24,19 @@ Ce projet correspond à la première étape de la création d'un capteur connect
 - Bouton `Reset` dans l'IHM pour demander la remise à zéro du compteur.
 - Mise à jour du compteur dans l'IHM.
 - Republication de la valeur actuelle du compteur à chaque lancement.
+
+### Livrable 2 (tag `livrable-2`)
+- **Acquisition de mesure :** lecture d'une broche analogique ou numérique (câblée ou non) — *et/ou capteur DHT11 sur pin `0` (température et humidité dans des unités lisibles) si bonus réalisé*.
+- **Contrôle de la LED RGB intégrée (ESP32-C3) :**
+  - Commande d'allumage / extinction (`cmd_...`) déclenchée depuis l'IHM.
+  - Définition de la couleur (`set_...`) générée côté IHM (ex. slider ou couleur aléatoire) et appliquée par le capteur.
+- **Fiabilité et non-blocage :** structures C++ `packed` de taille fixe vérifiée à la compilation (`static_assert`), noms de champs intégrant l'unité (ex. `centiDegrees`, `periodMs`, etc.), `loop()` et handlers non bloquants (pas d'attente bloquante).
+- **Synchronisation et session :** republication complète de l'état (mesures, état et couleur de la LED) au démarrage et à chaque ouverture de session.
+- **Robustesse des commandes :** rejet des messages de taille inattendue et confirmation de chaque commande/réglage appliqué par un message `status_...`.
+- **IHM Godot :**
+  - Noms de subjects identiques des deux côtés (construits à partir de `DEVICE_NAME` / identifiant appareil) et validation stricte de la taille des payloads avant décodage.
+  - Mise à jour de l'affichage uniquement sur réception des `status_...` (jamais directement au clic utilisateur).
+  - Gestion de la déconnexion : valeurs marquées comme périmées (ex. grisées) et commandes indisponibles tant que le capteur n'est pas reconnecté.
 
 ## 3. Matériel et configuration
 
@@ -39,7 +60,16 @@ Les paramètres de connexion sont centralisés dans `config.h` :
 
 ## 4. Organisation des fichiers
 
-Organisation conseillée pour le dépôt ou l'archive de rendu :
+Les deux livrables sont suivis dans le même dépôt GitHub via des **tags** :
+
+```bash
+# Consulter les livrables
+git tag
+git checkout livrable-1   # État du Livrable 1
+git checkout livrable-2   # État final du Livrable 2
+```
+
+Organisation du dépôt :
 
 ```text
 groupe_a_livrable_1/
@@ -54,7 +84,13 @@ groupe_a_livrable_1/
     ├── main/
     ├── style/
     └── tiles/
-        └── sensor_boiler/
+        ├── sensor_boiler/
+        │   ├── tile.gd
+        │   └── tile.tscn
+        ├── Led/
+        │   ├── tile.gd
+        │   └── tile.tscn
+        └── capteur/
             ├── tile.gd
             └── tile.tscn
 ```
