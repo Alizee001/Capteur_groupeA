@@ -3,15 +3,15 @@
 **Groupe : A**  
 **Appareil :** `sensor_a`  
 **Livrables :**
-- `livrable-1` : version correspondant au Livrable 1 (mise en route, heartbeat, compteur et reset)
-- - `livrable-2` : version finale correspondant au Livrable 2 (mesure capteur, contrôle LED RGB, tuile Godot complète et documentation du contrat)
+- `livrable-1` : tag github correspondant au Livrable 1 (mise en route, heartbeat, compteur et reset)
+- `livrable-2` : tag github correspondant au Livrable 2 (mesure capteur, contrôle LED RGB, utilisation capteur DHT11, tuile Godot complète et documentation du contrat)
 
 ## 1. Présentation du projet
 
 Ce projet met en œuvre un capteur connecté basé sur une carte **ESP32-C3** communiquant via la bibliothèque **MPS** avec la passerelle du TP et une interface graphique **Godot**.
 
 - **Livrable 1 (`livrable-1`) :** mise en route de la liaison capteur <-> passerelle <-> IHM, heartbeat, compteur d'exemple et remise à zéro (`reset`).
-- **Livrable 2 (`livrable-2`) :** lecture d'une donnée de capteur (broche analogique/numérique et/ou DHT11 en bonus), pilotage de l'état et de la couleur de la LED RGB intégrée depuis l'IHM, gestion complète de l'état/déconnexion côté Godot, et respect strict des conventions et contrats de messages.
+- **Livrable 2 (`livrable-2`) :** lecture d'une donnée de capteur (DHT11), pilotage de l'état et de la couleur de la LED RGB intégrée depuis l'IHM, gestion complète de l'état/déconnexion côté Godot, et respect strict des conventions et contrats de messages.
 
 ## 2. Fonctionnalités
 
@@ -26,10 +26,10 @@ Ce projet met en œuvre un capteur connecté basé sur une carte **ESP32-C3** co
 - Republication de la valeur actuelle du compteur à chaque lancement.
 
 ### Livrable 2 (tag `livrable-2`)
-- **Acquisition de mesure :** lecture d'une broche analogique ou numérique (câblée ou non) — *et/ou capteur DHT11 sur pin `0` (température et humidité dans des unités lisibles) si bonus réalisé*.
+- **Acquisition de mesure :** lecture d'une broche analogique ou numérique (câblée ou non) — *capteur DHT11 sur pin `0` (température et humidité dans des unités lisibles)*.
 - **Contrôle de la LED RGB intégrée (ESP32-C3) :**
   - Commande d'allumage / extinction (`cmd_...`) déclenchée depuis l'IHM.
-  - Définition de la couleur (`set_...`) générée côté IHM (ex. slider ou couleur aléatoire) et appliquée par le capteur.
+  - Définition de la couleur (`set_...`) générée côté IHM (couleur aléatoire) et appliquée par le capteur.
 - **Fiabilité et non-blocage :** structures C++ `packed` de taille fixe vérifiée à la compilation (`static_assert`), noms de champs intégrant l'unité (ex. `centiDegrees`, `periodMs`, etc.), `loop()` et handlers non bloquants (pas d'attente bloquante).
 - **Synchronisation et session :** republication complète de l'état (mesures, état et couleur de la LED) au démarrage et à chaque ouverture de session.
 - **Robustesse des commandes :** rejet des messages de taille inattendue et confirmation de chaque commande/réglage appliqué par un message `status_...`.
