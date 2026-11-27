@@ -1,150 +1,136 @@
-# Création d’un capteur connecté — Livrable 1 & 2
+# Création d’un capteur connecté — Livrables 1 et 2
 
-**Groupe : A**  
-**Appareil :** `sensor_a`  
-**Livrables :**
-- `livrable-1` : tag github correspondant au Livrable 1 (mise en route, heartbeat, compteur et reset)
-- `livrable-2` : tag github correspondant au Livrable 2 (mesure capteur, contrôle LED RGB, utilisation capteur DHT11, tuile Godot complète et documentation du contrat)
+**Groupe A**  
+**Nom du capteur** `sensor_a`
+
+- **Livrable 1** — tag `livrable-1` : mise en route, heartbeat, compteur et remise à zéro.
+- **Livrable 2** — tag `livrable-2` : mesure analogique, température et humidité, pilotage de la LED RGB et gestion de la déconnexion dans Godot.
 
 ## 1. Présentation du projet
 
-Ce projet met en œuvre un capteur connecté basé sur une carte **ESP32-C3** communiquant via la bibliothèque **MPS** avec la passerelle du TP et une interface graphique **Godot**.
+Ce projet met en œuvre un capteur connecté sur une carte **ESP32-C3**. Le firmware utilise la bibliothèque **MPS** pour communiquer avec la passerelle du TP, reliée en USB à l’ordinateur qui exécute l’interface **Godot**.
 
-- **Livrable 1 (`livrable-1`) :** mise en route de la liaison capteur <-> passerelle <-> IHM, heartbeat, compteur d'exemple et remise à zéro (`reset`).
-- **Livrable 2 (`livrable-2`) :** lecture d'une donnée de capteur (DHT11), pilotage de l'état et de la couleur de la LED RGB intégrée depuis l'IHM, gestion complète de l'état/déconnexion côté Godot, et respect strict des conventions et contrats de messages.
+La carte publie ses données vers l’interface. L’interface envoie des commandes à la carte pour remettre le compteur à zéro dans le livrable 1 et pour piloter la LED RGB dans le livrable 2.
 
 ## 2. Fonctionnalités
 
-### Livrable 1 (tag `livrable-1`)
+### Livrable 1
 
-- Enregistrement du capteur `sensor_a` auprès de la passerelle.
-- Affichage de son identifiant (`node_id`) et de son état de connexion.
-- Émission d'un heartbeat toutes les secondes pour signaler que le capteur fonctionne.
-- Incrémentation et publication d'un compteur toutes les 2 secondes.
-- Bouton `Reset` dans l'IHM pour demander la remise à zéro du compteur.
-- Mise à jour du compteur dans l'IHM.
-- Republication de la valeur actuelle du compteur à chaque lancement.
+- Enregistrement de `sensor_a` auprès de la passerelle et affichage de son identifiant `node_id`.
+- Émission d’un heartbeat toutes les secondes pour indiquer que le capteur est actif.
+- Incrémentation, publication et affichage du compteur toutes les 2 secondes.
+- Remise à zéro à l’aide du bouton **Reset**. L’affichage est mis à jour lorsque le capteur confirme la nouvelle valeur.
+- Republication de la valeur courante du compteur à l’ouverture d’une session MPS.
 
-### Livrable 2 (tag `livrable-2`)
-- **Acquisition de mesure :** lecture d'une broche analogique ou numérique (câblée ou non) — *capteur DHT11 sur pin `0` (température et humidité dans des unités lisibles)*.
-- **Contrôle de la LED RGB intégrée (ESP32-C3) :**
-  - Commande d'allumage / extinction (`cmd_...`) déclenchée depuis l'IHM.
-  - Définition de la couleur (`set_...`) générée côté IHM (couleur aléatoire) et appliquée par le capteur.
-- **Fiabilité et non-blocage :** structures C++ `packed` de taille fixe vérifiée à la compilation (`static_assert`), noms de champs intégrant l'unité (ex. `centiDegrees`, `periodMs`, etc.), `loop()` et handlers non bloquants (pas d'attente bloquante).
-- **Synchronisation et session :** republication complète de l'état (mesures, état et couleur de la LED) au démarrage et à chaque ouverture de session.
-- **Robustesse des commandes :** rejet des messages de taille inattendue et confirmation de chaque commande/réglage appliqué par un message `status_...`.
-- **IHM Godot :**
-  - Noms de subjects identiques des deux côtés (construits à partir de `DEVICE_NAME` / identifiant appareil) et validation stricte de la taille des payloads avant décodage.
-  - Mise à jour de l'affichage uniquement sur réception des `status_...` (jamais directement au clic utilisateur).
-  - Gestion de la déconnexion : valeurs marquées comme périmées (ex. grisées) et commandes indisponibles tant que le capteur n'est pas reconnecté.
+### Livrable 2 
+
+- Lecture de l’entrée analogique `GPIO 4` et affichage dans Godot de la valeur brute et d’une estimation de la tension.
+- Lecture du **DHT11 sur `GPIO 0`** et affichage de la température en °C et de l’humidité relative en %. Cette fonctionnalité correspond au bonus du TP.
+- Allumage, extinction et changement de couleur de la LED RGB SK6812 depuis Godot. Le bouton **Led On/off** alterne entre le blanc et l’extinction. Quand la LED est allumée, **Change color** choisit une couleur aléatoire dans Godot.
+- Validation de la taille des messages avant leur traitement. Chaque commande appliquée est confirmée par un message `status_`.
+- Après **3,5 secondes sans heartbeat**, les mesures sont grisées et les boutons LED sont désactivés. La reprise du heartbeat rétablit l’état connecté.
 
 ## 3. Matériel et configuration
 
 ### Matériel
 
-- Une carte ESP32-C3.
-- La passerelle MPS.
-- Il y a aucun cablage supplémentaire pour cette partie. 
+- Une carte **ESP32-C3** du TP avec une LED RGB SK6812 et un DHT11 précâblés.
+- Une passerelle **MPS**.
+- Des câbles USB de données pour relier la passerelle et l’ESP32-C3 à l’ordinateur.
+
+| Élément | Broche | Utilisation |
+| --- | --- | --- |
+| LED RGB SK6812 | `GPIO 2` (`G2`) | Pilotée avec `rgbLedWrite()`. |
+| DHT11 | `GPIO 0` (`G0`) | Mesure de la température et de l’humidité relative. |
+| Entrée analogique | `GPIO 4` (`G4`) | Lecture avec `analogRead()`. La broche est laissée libre sur la carte du TP, ce qui explique les fluctuations. |
 
 ### Configuration Arduino
 
-Les paramètres de connexion sont centralisés dans `config.h` :
+Les paramètres de connexion se trouvent dans [`config.h`](Boilerplate_groupeA/config.h). La MAC et le canal ci-dessous correspondent à la configuration enregistrée dans `main`. Les adapter à la passerelle utilisée.
 
 | Paramètre | Valeur |
-|---|---|
-| Nom de l'appareil (`DEVICE_NAME`) | `sensor_a` |
-| Adresse MAC de la passerelle (`kGatewayMacAddress`) | `90:DA:72:49:03:6C` **cette valeur est variable en fonction de la passserelle utilisée**
-| Canal Wi-Fi (`kWifiChannel`) | `3` **cette valeur est variable en fonction de la passserelle utilisée**
-| Vitesse du moniteur série | `115200` bauds |
+| --- | --- |
+| Nom de l’appareil (`DEVICE_NAME`) | `sensor_a` |
+| Adresse MAC de la passerelle (`kGatewayMacAddress`) | `variable` |
+| Canal Wi-Fi de la passerelle (`kWifiChannel`) | `variable` |
+| Vitesse du moniteur série Arduino | `115200` bauds |
 
+### Lancement
+
+1. Brancher la passerelle en USB. Ouvrir [`hmi/project.godot`](hmi/project.godot) avec **Godot 4.7**, puis lancer l’IHM.
+2. Attendre la détection automatique de la passerelle. Relever son adresse MAC et son canal Wi-Fi dans le journal Godot.
+3. Dans l’IDE Arduino, installer le support de carte ESP32, la bibliothèque MPS fournie pour le TP, **DHT sensor library** et **Adafruit Unified Sensor**.
+4. Ouvrir [`Boilerplate_groupeA.ino`](Boilerplate_groupeA/Boilerplate_groupeA.ino) et renseigner la MAC et le canal de la passerelle dans `config.h`.
+5. Sélectionner l’ESP32-C3 et son port série, puis téléverser le croquis. Vérifier que le `node_id` apparaît dans Godot et que l’icône du heartbeat clignote.
 
 ## 4. Organisation des fichiers
 
-Les deux livrables sont suivis dans le même dépôt GitHub via des **tags** :
-
 ```bash
-# Consulter les livrables
-git tag
-git checkout livrable-1   # État du Livrable 1
-git checkout livrable-2   # État final du Livrable 2
+# Récupérer le dépôt
+git clone https://github.com/Alizee001/Capteur_groupeA.git
+cd Capteur_groupeA
+
+# Consulter le livrable 1
+git switch --detach livrable-1
+
+# Consulter le livrable 2
+git switch --detach livrable-2
 ```
 
-Organisation du dépôt :
+| Fichier ou dossier | Rôle |
+| --- | --- |
+| [`Boilerplate_groupeA/Boilerplate_groupeA.ino`](Boilerplate_groupeA/Boilerplate_groupeA.ino) | Firmware Arduino, lectures des capteurs et gestion des messages MPS. |
+| [`Boilerplate_groupeA/config.h`](Boilerplate_groupeA/config.h) | Paramètres de connexion du capteur. |
+| [`hmi/project.godot`](hmi/project.godot) | Projet Godot à importer. |
+| [`hmi/tiles/Led/`](hmi/tiles/Led/) | Script et scène de la tuile LED. |
+| [`hmi/tiles/capteur/`](hmi/tiles/capteur/) | Script et scène de la tuile de mesures. |
+| [`hmi/tiles/sensor_boiler/`](https://github.com/Alizee001/Capteur_groupeA/tree/livrable-1/hmi/tiles/sensor_boiler) | Tuile du livrable 1 avec le compteur et le bouton **Reset**. |
 
-```text
-groupe_a_livrable_1/
-├── README.md
-├── Boilerplate_groupeA/
-│       ├── Boilerplate_groupeA.ino
-│       └── config.h
-└── hmi/
-    ├── project.godot
-    ├── addons/
-    ├── core/
-    ├── main/
-    ├── style/
-    └── tiles/
-        ├── sensor_boiler/
-        │   ├── tile.gd
-        │   └── tile.tscn
-        ├── Led/
-        │   ├── tile.gd
-        │   └── tile.tscn
-        └── capteur/
-            ├── tile.gd
-            └── tile.tscn
-```
+## 5. Communication entre le capteur et l’IHM
 
-## 5. Communication entre le capteur et l'IHM
+Tous les messages passent par la passerelle MPS. Les noms des sujets sont construits à partir de `DEVICE_NAME`. Les offsets indiquent la position de chaque champ dans le payload, en octets à partir de `0`. Les entiers sur plusieurs octets sont transmis en *little-endian*.
 
-### `hb_sensor_a`
+| Sujet | Sens | Taille du payload | Rôle et déclenchement |
+| --- | --- | --- | --- |
+| `hb_sensor_a` | ESP32-C3 → Godot | Format géré par MPS | Signal de présence envoyé toutes les secondes avec `MPS.publishHeartbeat()`. |
+| `status_sensor_a_counter` | ESP32-C3 → Godot | 4 octets | Valeur du compteur envoyée toutes les 2 secondes, après un reset et à l’ouverture d’une session. |
+| `cmd_sensor_a_reset_counter` | Godot → ESP32-C3 | 0 octet | Commande envoyée par le bouton **Reset**. Le capteur répond avec `status_sensor_a_counter` contenant `0`. |
+| `status_sensor_a_analog` | ESP32-C3 → Godot | 2 octets | Valeur brute de `GPIO 4` envoyée toutes les secondes. La dernière lecture disponible est republiée à l’ouverture d’une session. |
+| `status_sensor_a_environment` | ESP32-C3 → Godot | 4 octets | Température et humidité du DHT11. La lecture est tentée toutes les 2 secondes et publiée si elle est valide. La dernière mesure valide est republiée à l’ouverture d’une session. |
+| `cmd_sensor_a_set_led` | Godot → ESP32-C3 | 3 octets | Valeurs RGB envoyées par **Led On/off** ou **Change color**. Le capteur applique les valeurs et confirme avec `status_sensor_a_led`. |
+| `status_sensor_a_led` | ESP32-C3 → Godot | 3 octets | Valeurs RGB effectivement appliquées, envoyées après chaque commande valide et à l’ouverture d’une session. L’état initial est `(0, 0, 0)`. |
 
-| Élément | Description |
-|---|---|
-| Émetteur | ESP32-C3 |
-| Destinataire | IHM, via la passerelle |
-| Rôle | Indiquer que le programme du capteur est actif |
-| Fréquence | 1 seconde |
-| Envoi | `MPS.publishHeartbeat(kSubHb)` |
-| Payload | Format de heartbeat géré par la bibliothèque MPS, sans structure personnalisée dans ce projet |
+### Champs des payloads
 
-### `status_sensor_a_counter`
+| Sujet(s) | Offset | Champ | Type | Taille | Unité ou plage |
+| --- | --- | --- | --- | --- | --- |
+| `status_sensor_a_counter` | `0` | `value` | `uint32_t` | 4 octets | Nombre d’incréments. |
+| `status_sensor_a_analog` | `0` | `adcRawCounts` | `uint16_t` | 2 octets | Valeur brute ADC sur 12 bits, de `0` à `4095`. |
+| `status_sensor_a_environment` | `0` | `temperatureCentiDegrees` | `int16_t` | 2 octets | Centièmes de degré Celsius. |
+| `status_sensor_a_environment` | `2` | `humidityCentiPercent` | `uint16_t` | 2 octets | Centièmes de point de pourcentage d’humidité relative. |
+| `cmd_sensor_a_set_led`, `status_sensor_a_led` | `0` | `r` | `uint8_t` | 1 octet | Intensité du rouge, de `0` à `255`. |
+| `cmd_sensor_a_set_led`, `status_sensor_a_led` | `1` | `g` | `uint8_t` | 1 octet | Intensité du vert, de `0` à `255`. |
+| `cmd_sensor_a_set_led`, `status_sensor_a_led` | `2` | `b` | `uint8_t` | 1 octet | Intensité du bleu, de `0` à `255`. |
 
-| Élément | Description |
-|---|---|
-| Émetteur | ESP32-C3 |
-| Destinataire | IHM, via la passerelle |
-| Rôle | Transmettre la valeur réelle du compteur |
-| Fréquence | Toutes les 2 secondes, après un Reset et à chaque ouverture de session |
-| Structure C++ | `CounterPayload` (`packed`) |
-| Taille totale | 4 octets, vérifiée par `static_assert` |
-
-| Offset | Champ | Type | Unité | Taille |
-|---|---|---|---|---|
-| 0 | `value` | `uint32_t` | Sans unité (nombre d'incréments) | 4 octets |
-
-Côté Godot, le payload est accepté uniquement s'il contient exactement **4 octets**, puis décodé avec `decode_u32(0)`.
-
-### `cmd_sensor_a_reset_counter`
-
-| Élément | Description |
-|---|---|
-| Émetteur | IHM Godot |
-| Destinataire | ESP32-C3, via la passerelle |
-| Rôle | Demander la remise à zéro du compteur |
-| Payload | Vide : aucun champ, **0 octet** |
-| Réponse | Publication immédiate de `status_sensor_a_counter` avec la nouvelle valeur |
-
-Le programme Arduino ignore une commande Reset dont le payload n'est pas vide. L'IHM **ne met pas directement le compteur à zéro** lors du clic : elle attend de recevoir le `status_` du capteur.
+Le heartbeat utilise le format de la bibliothèque MPS. La commande `cmd_sensor_a_reset_counter` attend un payload vide. Pour la LED, `(0, 0, 0)` correspond à l’extinction et `(255, 255, 255)` au blanc.
 
 ## 6. Fonctionnement du programme
 
-- Au démarrage, l'ESP32-C3 initialise la communication MPS et s'enregistre auprès de la passerelle.
-- La boucle Arduino appelle `MPS.loop()` et planifie le heartbeat ainsi que le compteur à l'aide de `millis()`, **sans `delay()`**.
-- À l'ouverture d'une session, `onSessionOpened()` republie la valeur actuelle du compteur, car la passerelle ne conserve pas les anciens messages.
-- Lorsque l'utilisateur clique sur **Reset**, Godot publie la commande `cmd_sensor_a_reset_counter`.
-- Le capteur vérifie la commande, remet son compteur à zéro et publie son nouvel état. Godot met alors à jour l'affichage.
+- **Démarrage** — l’ESP32-C3 initialise le DHT11 et la communication MPS, puis s’enregistre auprès de la passerelle. La LED est initialement éteinte.
+- **Publications périodiques** — la boucle Arduino appelle `MPS.loop()` et utilise `millis()` pour déclencher le heartbeat, le compteur et les lectures, sans `delay()` explicite.
+- **Ouverture de session** — `onSessionOpened()` republie le compteur, l’état RGB de la LED et les dernières mesures disponibles.
+- **Validation** — les structures `CounterPayload`, `AnalogPayload`, `EnvironmentPayload` et `LedPayload` sont déclarées `packed`. Leurs tailles sont vérifiées avec `static_assert`. Le firmware ignore les commandes de taille inattendue et Godot vérifie la taille des statuts avant le décodage.
+- **Affichage des mesures** — Godot estime la tension analogique avec `valeur brute × 3,3 / 4095`. Pour le DHT11, Godot divise les deux valeurs reçues par `100`. Si la lecture DHT11 échoue, le firmware conserve la dernière mesure valide.
+- **Confirmation des commandes** — le clic déclenche l’envoi d’une commande. L’IHM actualise la valeur du compteur ou l’état de la LED à la réception du `status_` correspondant.
 
-## 7. Périmètre du livrable
+## 7. Périmètre et vérification du livrable
 
-Ce **livrable 1** couvre la configuration et la mise en route du système connecté (objectifs 1 à 5 du sujet). La lecture d'une véritable donnée de capteur, le pilotage de la LED RGB et les fonctionnalités avancées de la tuile Godot appartiennent au **livrable 2**.
+Le **livrable 1** contient la tuile de mise en route avec le compteur et le bouton **Reset**. Le **livrable 2** contient les tuiles de mesures et de commande de la LED. Le firmware de `main` conserve le compteur et sa commande de remise à zéro. Leur démonstration dans l’IHM se fait avec la tuile du tag `livrable-1`.
+
+| Vérification | Résultat attendu |
+| --- | --- |
+| Démarrer avec la passerelle branchée | Le `node_id` apparaît et le heartbeat clignote. |
+| Cliquer sur **Reset** dans le livrable 1 | Le compteur affiche `0` après réception de la confirmation. |
+| Consulter la tuile de mesures dans `main` | L’IHM affiche la valeur analogique, la température en °C et l’humidité en %. |
+| Allumer la LED, demander une couleur, puis l’éteindre | La LED physique et le statut affiché correspondent. Une couleur tirée au hasard peut être identique à la précédente. |
+| Débrancher puis rebrancher l’ESP32-C3 | Les mesures sont grisées et les boutons LED désactivés pendant la déconnexion. Les mesures et les commandes redeviennent accessibles à la reconnexion. |
