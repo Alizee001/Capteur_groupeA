@@ -3,8 +3,6 @@ extends Tile
 # ---- CONSTANTES ----
 const DEVICE_NAME = "sensor_a"
 const SUB_HB = "hb_" + DEVICE_NAME
-const SUB_STATUS_COUNTER = "status_" + DEVICE_NAME + "_counter" 
-const SUB_CMD_RESET = "cmd_" + DEVICE_NAME + "_reset_counter"
 const SUB_STATUS_ANALOG = "status_" + DEVICE_NAME + "_analog" 
 const SUB_STATUS_ENVIRONMENT = "status_" + DEVICE_NAME + "_environment" 
 
@@ -38,7 +36,6 @@ func get_subscriptions() -> PackedStringArray:
 	subscriptions.append(SUB_HB)
 	subscriptions.append(SUB_STATUS_ANALOG) 
 	subscriptions.append(SUB_STATUS_ENVIRONMENT) 
-	subscriptions.append(SUB_STATUS_COUNTER) 
 	return subscriptions
 
 
@@ -61,10 +58,6 @@ func on_gateway_reachability_changed(is_gateway_reachable: bool) -> void:
 
 
 func on_message(subject_name: String, source_id: int, payload: PackedByteArray) -> void:
-	print("Subject : ", subject_name)
-	print("Source : ", source_id)
-	print("Payload : ", payload)
-	print("Taille : ", payload.size())
 
 	if subject_name == SUB_HB:
 		_on_hb(source_id)
@@ -73,19 +66,12 @@ func on_message(subject_name: String, source_id: int, payload: PackedByteArray) 
 		return
 
 	match subject_name:
-		SUB_STATUS_COUNTER:
-			if payload.size() != 4:
-				return
-			%CounterLabel.text = "Compteur : %d" % payload.decode_u32(0)
-
 		SUB_STATUS_ANALOG:
-			print("ANALOGIQUE RECU")
 			if payload.size() != 2:
 				return
 			_show_analog(payload.decode_u16(0))
 
 		SUB_STATUS_ENVIRONMENT:
-			print("TEMPERATURE ET HUMIDITE RECUES")
 			if payload.size() != 4:
 				return
 			_show_environment(payload.decode_s16(0), payload.decode_u16(2))
@@ -118,7 +104,6 @@ func _on_hb(source_id: int):
 	
 func _ready() -> void:
 	super() # obligatoire : c'est lui qui abonne la tuile
-	%ResetButton.pressed.connect(func(): publish(SUB_CMD_RESET, PackedByteArray())) 
 	%AnalogLabel.text = "Analogique : —"
 	%TemperatureLabel.text = "Température : —"
 	%HumidityLabel.text = "Humidité : —"
@@ -133,8 +118,6 @@ func _show_environment(temp_centi: int, hum_centi: int, suffix := "") -> void:
 
 func _set_stale(stale: bool) -> void: 
 	var color := Color(1, 1, 1, 0.4) if stale else Color(1, 1, 1, 1)
-	%CounterLabel.modulate = color
 	%AnalogLabel.modulate = color
 	%TemperatureLabel.modulate = color
 	%HumidityLabel.modulate = color
-	%ResetButton.disabled = stale
