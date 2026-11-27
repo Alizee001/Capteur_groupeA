@@ -3,8 +3,6 @@ extends Tile
 # ---- CONSTANTES ----
 const DEVICE_NAME = "sensor_a"
 const SUB_HB = "hb_" + DEVICE_NAME
-const SUB_STATUS_COUNTER = "status_" + DEVICE_NAME + "_counter" 
-const SUB_CMD_RESET = "cmd_" + DEVICE_NAME + "_reset_counter"
 const SUB_STATUS_ANALOG = "status_" + DEVICE_NAME + "_analog" 
 const SUB_STATUS_ENVIRONMENT = "status_" + DEVICE_NAME + "_environment" 
 
@@ -38,7 +36,6 @@ func get_subscriptions() -> PackedStringArray:
 	subscriptions.append(SUB_HB)
 	subscriptions.append(SUB_STATUS_ANALOG) 
 	subscriptions.append(SUB_STATUS_ENVIRONMENT) 
-	subscriptions.append(SUB_STATUS_COUNTER) 
 	return subscriptions
 
 
@@ -61,19 +58,22 @@ func on_gateway_reachability_changed(is_gateway_reachable: bool) -> void:
 
 
 func on_message(subject_name: String, source_id: int, payload: PackedByteArray) -> void:
-	#print(subject_name, " ", source_id, " ", payload)
-	if subject_name == SUB_HB: _on_hb(source_id)
-	if source_id != _node_id: return # ne traitez que les messages dédiés à votre capteur
-	# Ajoutez vos messages à la suite
+
+	if subject_name == SUB_HB:
+		_on_hb(source_id)
+
+	if source_id != _node_id:
+		return
+
 	match subject_name:
-		SUB_STATUS_COUNTER: 
-			if payload.size() != 4: return # le contrat : 4 octets, sinon on ignore
-			%CounterLabel.text = "Compteur : %d" % payload.decode_u32(0)
 		SUB_STATUS_ANALOG:
-			if payload.size() != 2: return # le contrat : 2 octets, sinon on ignore
+			if payload.size() != 2:
+				return
 			_show_analog(payload.decode_u16(0))
+
 		SUB_STATUS_ENVIRONMENT:
-			if payload.size() != 4: return # le contrat : 4 octets, sinon on ignore
+			if payload.size() != 4:
+				return
 			_show_environment(payload.decode_s16(0), payload.decode_u16(2))
 
 func _process(delta: float) -> void:
@@ -104,7 +104,6 @@ func _on_hb(source_id: int):
 	
 func _ready() -> void:
 	super() # obligatoire : c'est lui qui abonne la tuile
-	%ResetButton.pressed.connect(func(): publish(SUB_CMD_RESET, PackedByteArray())) 
 	%AnalogLabel.text = "Analogique : —"
 	%TemperatureLabel.text = "Température : —"
 	%HumidityLabel.text = "Humidité : —"
@@ -119,8 +118,6 @@ func _show_environment(temp_centi: int, hum_centi: int, suffix := "") -> void:
 
 func _set_stale(stale: bool) -> void: 
 	var color := Color(1, 1, 1, 0.4) if stale else Color(1, 1, 1, 1)
-	%CounterLabel.modulate = color
 	%AnalogLabel.modulate = color
 	%TemperatureLabel.modulate = color
 	%HumidityLabel.modulate = color
-	%ResetButton.disabled = stale

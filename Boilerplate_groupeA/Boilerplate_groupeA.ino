@@ -204,6 +204,15 @@ static void publishEnvironment() {
     return;
   }
 
+  // Affichage dans le moniteur série Arduino
+  Serial.print("Temperature : ");
+  Serial.print(temperatureCelsius);
+  Serial.println(" °C");
+
+  Serial.print("Humidite : ");
+  Serial.print(humidityPercent);
+  Serial.println(" %");
+
   environment.temperatureCentiDegrees =
       static_cast<int16_t>(
           lroundf(temperatureCelsius * kCentiPerUnit));
@@ -215,6 +224,8 @@ static void publishEnvironment() {
   isEnvironmentValid = true;
 
   MPS.publishValue(kSubStatusEnvironment, environment);
+
+  Serial.println("Publication MPS demandee");
 }
 
 // ---- Fonctions Arduino ----
